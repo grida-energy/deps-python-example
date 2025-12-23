@@ -3,10 +3,10 @@ name = "deps-python-example"
 version = "0.1.0"
 requires-python = ">=3.9"
 dependencies = [
-    "paho-mqtt>=1.5.1",
-    "asyncio>=3.4.3",
-    "protobuf>=6.32.1",
-    "mypy-protobuf>=3.6.0",
-    "deps @ git+https://github.com/grida-energy/deps.git@v0.0.1c",
-    "python-dotenv>=1.1.1",
+    "paho-mqtt>=2.1.0",
+    "asyncio>=4.0.0",
+    "protobuf>=6.33.2",
+    "mypy-protobuf>=4.0.0",
+    "deps @ git+https://github.com/grida-energy/deps.git@v0.0.2",
+    "python-dotenv>=1.2.1",
 ]

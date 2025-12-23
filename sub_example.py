@@ -18,42 +18,62 @@ def connect_mqtt(url: str, client_id: str, **kwargs) -> mqtt.Client:
     client.connect(host, port)
     return client
 
+
+def on_bess_message(topic_prefix: str, client, userdata, msg: mqtt.MQTTMessage):
+    import deps.preset.bess.model.v1_pb2 as bess_model
+    import deps.vnd.parameter.v1_pb2 as vnd_param_model
+    import deps.vnd.alarm.v1_pb2 as vnd_alarm_model
+
+    sub_topic: str = ""
+    if msg.topic.startswith(topic_prefix):
+        sub_topic = msg.topic[len(topic_prefix):]
+    try:
+        match sub_topic:
+            case "/measure":
+                model = bess_model.BessMeasure()
+                model.ParseFromString(msg.payload)
+                print(f"Received message: {model} on topic {msg.topic}")
+            case "/vnd/param-meta":
+                model = vnd_param_model.ParamMeta()
+                model.ParseFromString(msg.payload)
+                print(f"Received message: {model} on topic {msg.topic}")
+            case "/vnd/alarm-meta":
+                model = vnd_alarm_model.AlarmMeta()
+                model.ParseFromString(msg.payload)
+                print(f"Received message: {model} on topic {msg.topic}")
+            case "/vnd/alarm":
+                model = vnd_alarm_model.AlarmData()
+                model.ParseFromString(msg.payload)
+                print(f"Received message: {model} on topic {msg.topic}")
+            case _:
+                print(f"Unknown topic suffix: {sub_topic}")
+    except Exception as e:
+        print(f"Failed to parse message: {e}")
+        return
+    
+def on_station_cast_message(topic_prefix: str,client, userdata, msg: mqtt.MQTTMessage):
+    import deps.preset.station_cast.model.v1_pb2 as station_cast_model
+
+    sub_topic: str = ""
+    if msg.topic.startswith(topic_prefix):
+        sub_topic = msg.topic[len(topic_prefix):]
+    try:
+        match sub_topic:
+            case "/measure":
+                model = station_cast_model.Rpc.CastMeasure()
+                model.ParseFromString(msg.payload)
+                print(f"Received message: {model} on topic {msg.topic}")
+            case _:
+                print(f"Unknown topic suffix: {sub_topic}")
+    except Exception as e:
+        print(f"Failed to parse message: {e}")
+        return
+        
 def sub(client: mqtt.Client, topic_prefix: str):
-    def on_message(client, userdata, msg: mqtt.MQTTMessage):
-        import deps.preset.bess.model.v1_pb2 as bess_model
-        import deps.vnd.parameter.v1_pb2 as vnd_param_model
-        import deps.vnd.alarm.v1_pb2 as vnd_alarm_model
-
-        sub_topic: str = ""
-        if msg.topic.startswith(topic_prefix):
-            sub_topic = msg.topic[len(topic_prefix):]
-        try:
-            match sub_topic:
-                case "/measure":
-                    model = bess_model.BessMeasure()
-                    model.ParseFromString(msg.payload)
-                    print(f"Received message: {model} on topic {msg.topic}")
-                case "/vnd/param-meta":
-                    model = vnd_param_model.ParamMeta()
-                    model.ParseFromString(msg.payload)
-                    print(f"Received message: {model} on topic {msg.topic}")
-                case "/vnd/alarm-meta":
-                    model = vnd_alarm_model.AlarmMeta()
-                    model.ParseFromString(msg.payload)
-                    print(f"Received message: {model} on topic {msg.topic}")
-                case "/vnd/alarm":
-                    model = vnd_alarm_model.AlarmData()
-                    model.ParseFromString(msg.payload)
-                    print(f"Received message: {model} on topic {msg.topic}")
-                case _:
-                    print(f"Unknown topic suffix: {sub_topic}")
-        except Exception as e:
-            print(f"Failed to parse message: {e}")
-            return
-
-
+    from functools import partial
     client.subscribe(topic_prefix + "/#")
-    client.on_message = on_message
+    client.on_message = partial(on_bess_message, topic_prefix)
+    # client.on_message = partial(on_station_cast_message, topic_prefix)
 
 if __name__ == "__main__":
     import os
